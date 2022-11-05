@@ -38,9 +38,9 @@ logger.addHandler(logging.StreamHandler())
 def send_message(bot, message):
     """Отправляет сообщения пользователю."""
     try:
-        post_message = bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        bot_message = bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.info(f'Бот отправил сообщение "{message}"')
-        return post_message
+        return bot_message
 
     except telegram.error.TelegramError as error:
         logger.error(error)
