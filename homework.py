@@ -41,8 +41,10 @@ def send_message(bot, message):
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.info("Бот отправил сообщение!")
+        return True
     except Exception:
         logger.exception("Сообщение не отправлено!")
+        return False
 
 
 def get_api_answer(current_timestamp):
@@ -50,6 +52,7 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp
     params = {"from_date": timestamp}
     error_text = "Ошибка при запросе к API!"
+    error_text_json = "Ой, вренулся не json!"
 
     try:
         homework_statuses = requests.get(
@@ -63,8 +66,12 @@ def get_api_answer(current_timestamp):
         logger.error(error_text)
         raise Exception(error_text)
 
-    response = homework_statuses.json()
-    return response
+    try:
+        return homework_statuses.json()
+
+    except ValueError:
+        logger.error(error_text_json)
+        raise ValueError(error_text_json)
 
 
 def check_response(response):
