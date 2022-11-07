@@ -24,7 +24,7 @@ PRACTICUM_TOKEN = os.getenv("PRACTICUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-RETRY_TIME = 600
+RETRY_TIME = 5
 ENDPOINT = "https://practicum.yandex.ru/api/user_api/homework_statuses/"
 HEADERS = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
 
@@ -49,6 +49,7 @@ def get_api_answer(current_timestamp):
     """Делает запрос к эндпоинту API-сервиса."""
     timestamp = current_timestamp
     params = {"from_date": timestamp}
+    error_text = "Ошибка при запросе к API!"
 
     try:
         homework_statuses = requests.get(
@@ -59,8 +60,8 @@ def get_api_answer(current_timestamp):
         raise Exception(f"Ошибка {error}")
 
     if homework_statuses.status_code != HTTPStatus.OK:
-        logger.error("Ошибка при запросе к API!")
-        raise Exception("Ошибка при запросе к API!")
+        logger.error(error_text)
+        raise Exception(error_text)
 
     response = homework_statuses.json()
     return response
@@ -68,13 +69,15 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверяет ответ API на корректность."""
+    error_text = "Неверный тип данных!"
+
     try:
         homeworks = response["homeworks"]
     except KeyError:
         raise KeyError("Искомое значение отсутствует!")
     if not isinstance(homeworks, list):
-        logger.error("Неверный тип данных!")
-        raise TypeError("Неверный тип данных!")
+        logger.error(error_text)
+        raise TypeError(error_text)
 
     return homeworks
 
@@ -84,9 +87,9 @@ def parse_status(homework):
     try:
         homework_name = homework["homework_name"]
         homework_status = homework["status"]
+        verdict = HOMEWORK_VERDICTS[homework_status]
     except KeyError:
         raise KeyError("Искомое значение отсутствует!")
-    verdict = HOMEWORK_VERDICTS[homework_status]
 
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -103,16 +106,19 @@ def main():
     """Основная логика работы бота."""
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
+    error_text = "Домашек нет: проверять нечего!"
+    last_message = ""
 
     while True:
         try:
             response = get_api_answer(current_timestamp)
 
             chek = check_response(response)
+
             if not chek:
-                logger.debug("Домашек нет: проверять нечего!")
-                message = "Домашек нет: проверять нечего!"
-                bot.send_message(TELEGRAM_CHAT_ID, message)
+                logger.debug(error_text)
+                message = error_text
+                send_message(bot, message)
 
             message = parse_status(chek[0])
 
@@ -123,7 +129,9 @@ def main():
 
         except Exception as error:
             message = f"Сбой в работе программы: {error}"
-            bot.send_message(TELEGRAM_CHAT_ID, message)
+            if last_message != message:
+                send_message(bot, message)
+                last_message = message
             time.sleep(RETRY_TIME)
 
 
