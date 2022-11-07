@@ -107,7 +107,8 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     error_text = "Домашек нет: проверять нечего!"
-    last_message = ""
+    last_message_1 = ""
+    last_message_2 = ""
 
     while True:
         try:
@@ -118,8 +119,9 @@ def main():
             if not chek:
                 logger.debug(error_text)
                 message = error_text
-                send_message(bot, message)
-
+                if last_message_1 != message:
+                    send_message(bot, message)
+                    last_message_1 = message
             message = parse_status(chek[0])
 
             send_message(bot, message)
@@ -129,9 +131,9 @@ def main():
 
         except Exception as error:
             message = f"Сбой в работе программы: {error}"
-            if last_message != message:
+            if last_message_2 != message:
                 send_message(bot, message)
-                last_message = message
+                last_message_2 = message
             time.sleep(RETRY_TIME)
 
 
