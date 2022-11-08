@@ -139,8 +139,8 @@ def main():
         except Exception as error:
             message = f"Сбой в работе программы: {error}"
             if last_message_2 != message:
-                send_message(bot, message)
-                last_message_2 = message
+                if send_message(bot, message):
+                    last_message_2 = message
             time.sleep(RETRY_TIME)
 
 
